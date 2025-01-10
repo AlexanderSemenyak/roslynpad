@@ -254,9 +254,9 @@
             <editor:RoslynCodeEditor x:Name="Editor"
                                      x:FieldModifier="private"
                                      ContextActionsIcon="{StaticResource Bulb}"
-                                     FontFamily="Cascadia Code"
                                      Background="{DynamicResource {x:Static rp:ThemeDictionary.EditorBackground}}"
                                      Foreground="{DynamicResource {x:Static rp:ThemeDictionary.EditorForeground}}"
+                                     FontFamily="{Binding MainViewModel.Settings.EditorFontFamily}"
                                      Grid.Row="1"
                                      Grid.Column="0"
                                      Loaded="Editor_OnLoaded" />

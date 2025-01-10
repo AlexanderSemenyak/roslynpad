@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
@@ -143,8 +144,13 @@ public abstract class MainViewModel : NotificationObject, IDisposable
                 _ => throw new ArgumentOutOfRangeException(nameof(builtInTheme)),
             };
 
-            return (Path.Combine(AppContext.BaseDirectory, "Themes", theme.file), theme.type);
+            return (GetOsSpecificThemePath(theme.file), theme.type);
         }
+
+        static string GetOsSpecificThemePath(string path) =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? Path.Combine(AppContext.BaseDirectory, "..", "Resources", "Themes", path)
+            : Path.Combine(AppContext.BaseDirectory, "Themes", path);
 
         void LoadTheme(string? themeFile, ThemeType type)
         {
@@ -176,15 +182,14 @@ public abstract class MainViewModel : NotificationObject, IDisposable
         }
     }
 
-    protected virtual ImmutableArray<Assembly> CompositionAssemblies => ImmutableArray.Create(
-        typeof(MainViewModel).Assembly);
+    protected virtual ImmutableArray<Assembly> CompositionAssemblies => [typeof(MainViewModel).Assembly];
 
     private async Task InitializeInternal()
     {
         RoslynHost = await Task.Run(() => new RoslynHost(CompositionAssemblies,
             RoslynHostReferences.NamespaceDefault.With(imports: ["RoslynPad.Runtime"]),
-            disabledDiagnostics: ImmutableArray.Create("CS1701", "CS1702", "CS7011", "CS8097"),
-            analyzerConfigFiles: ImmutableArray.Create(_editorConfigPath)))
+            disabledDiagnostics: ["CS1701", "CS1702", "CS7011", "CS8097"],
+            analyzerConfigFiles: [_editorConfigPath]))
             .ConfigureAwait(true);
 
         OpenDocumentFromCommandLine();
@@ -347,6 +352,7 @@ public abstract class MainViewModel : NotificationObject, IDisposable
         {
             if (value == null) return; // prevent binding from clearing the value
             SetProperty(ref _currentOpenDocument, value);
+            OnPropertyChanged(nameof(ActiveContent));
         }
     }
 
@@ -541,7 +547,6 @@ public abstract class MainViewModel : NotificationObject, IDisposable
             }
         }
     }
-
 
     public event Action<double>? EditorFontSizeChanged;
 

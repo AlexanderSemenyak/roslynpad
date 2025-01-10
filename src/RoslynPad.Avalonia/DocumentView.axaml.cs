@@ -1,10 +1,12 @@
-﻿using System.Runtime.InteropServices;
+﻿#pragma warning disable CS8618 
+
 using Avalonia.Controls;
 using AvaloniaEdit.Document;
 using Microsoft.CodeAnalysis.Text;
 using RoslynPad.Editor;
 using RoslynPad.Build;
 using RoslynPad.UI;
+using Avalonia.Media;
 
 namespace RoslynPad;
 
@@ -18,28 +20,15 @@ partial class DocumentView : UserControl, IDisposable
         InitializeComponent();
 
         _editor = this.FindControl<RoslynCodeEditor>("Editor") ?? throw new InvalidOperationException("Missing Editor");
-        _editor.FontFamily = GetPlatformFontFamily();
 
         DataContextChanged += OnDataContextChanged;
+
+        //TODO: Add AvalonEditCommands ToggleAllFolds, ToggleFold
+        //CommandBindings.Add(new CommandBinding(AvalonEditCommands.ToggleAllFolds, (s, e) => ToggleAllFoldings()));
+        //CommandBindings.Add(new CommandBinding(AvalonEditCommands.ToggleFold, (s, e) => ToggleCurrentFolding()));
     }
 
     public OpenDocumentViewModel ViewModel => _viewModel.NotNull();
-
-    private static string GetPlatformFontFamily()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return "Consolas";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return "Menlo";
-        }
-        else
-        {
-            return "Monospace";
-        }
-    }
 
     private async void OnDataContextChanged(object? sender, EventArgs args)
     {
@@ -53,6 +42,7 @@ partial class DocumentView : UserControl, IDisposable
         viewModel.MainViewModel.EditorFontSizeChanged += size => _editor.FontSize = size;
         viewModel.MainViewModel.ThemeChanged += OnThemeChanged;
         _editor.FontSize = viewModel.MainViewModel.EditorFontSize;
+        SetFontFamily();
 
         var documentText = await viewModel.LoadTextAsync().ConfigureAwait(true);
 
@@ -65,7 +55,24 @@ partial class DocumentView : UserControl, IDisposable
             this);
 
         _editor.Document.TextChanged += (o, e) => viewModel.OnTextChanged();
+
+        void SetFontFamily()
+        {
+            var fonts = viewModel.MainViewModel.Settings.EditorFontFamily.Split(',');
+            foreach (var font in fonts)
+            {
+                try
+                {
+                    _editor.FontFamily = FontFamily.Parse(font);
+                    break;
+                }
+                catch
+                {
+                }
+            }
+        }
     }
+
     private void OnThemeChanged(object? sender, EventArgs e)
     {
         Editor.ClassificationHighlightColors = new ThemeClassificationColors(ViewModel.MainViewModel.Theme);

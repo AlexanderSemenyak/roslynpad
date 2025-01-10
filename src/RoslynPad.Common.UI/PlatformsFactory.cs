@@ -24,7 +24,7 @@ internal class PlatformsFactory : IPlatformsFactory
 
         if (string.IsNullOrEmpty(sdkPath))
         {
-            return Array.Empty<ExecutionPlatform>();
+            return [];
         }
 
         var versions = new List<(string name, string tfm, NuGetVersion version)>();
@@ -74,6 +74,7 @@ internal class PlatformsFactory : IPlatformsFactory
         {
             dotnetPaths.AddRange([
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".dotnet"),
+                "/usr/lib/dotnet",
                 "/usr/lib64/dotnet",
                 "/usr/share/dotnet",
                 "/usr/local/share/dotnet",

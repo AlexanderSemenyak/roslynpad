@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using System.Composition;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.CodeAnalysis.SignatureHelp;
 using Microsoft.CodeAnalysis.Text;
 
 namespace RoslynPad.Roslyn.SignatureHelp;
@@ -11,7 +10,7 @@ namespace RoslynPad.Roslyn.SignatureHelp;
 [method: ImportingConstructor]
 internal sealed class AggregateSignatureHelpProvider([ImportMany] IEnumerable<Lazy<Microsoft.CodeAnalysis.SignatureHelp.ISignatureHelpProvider, OrderableLanguageMetadata>> providers) : ISignatureHelpProvider
 {
-    private ImmutableArray<Microsoft.CodeAnalysis.SignatureHelp.ISignatureHelpProvider> _providers = providers.Where(x => x.Metadata.Language == LanguageNames.CSharp)
+    private readonly ImmutableArray<Microsoft.CodeAnalysis.SignatureHelp.ISignatureHelpProvider> _providers = providers.Where(x => x.Metadata.Language == LanguageNames.CSharp)
             .Select(x => x.Value).ToImmutableArray();
 
     public bool IsTriggerCharacter(char ch)
@@ -34,7 +33,7 @@ internal sealed class AggregateSignatureHelpProvider([ImportMany] IEnumerable<La
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var currentItems = await provider.GetItemsAsync(document, position, trigger.Inner, SignatureHelpOptions.Default, cancellationToken).ConfigureAwait(false);
+            var currentItems = await provider.GetItemsAsync(document, position, trigger.Inner, MemberDisplayOptions.Default, cancellationToken).ConfigureAwait(false);
             if (currentItems != null && currentItems.ApplicableSpan.IntersectsWith(position))
             {
                 // If another provider provides sig help items, then only take them if they
@@ -57,7 +56,7 @@ internal sealed class AggregateSignatureHelpProvider([ImportMany] IEnumerable<La
             var items = new SignatureHelpItems(bestItems);
             if (items.SelectedItemIndex == null)
             {
-                var selection = DefaultSignatureHelpSelector.GetSelection(items.Items, null, false, items.ArgumentIndex, items.ArgumentCount, items.ArgumentName, isCaseSensitive: true);
+                var selection = DefaultSignatureHelpSelector.GetSelection(items.Items, selectedItem: null, userSelected: false, items.SemanticParameterIndex, items.SyntacticArgumentCount, items.ArgumentName ?? string.Empty, isCaseSensitive: true);
                 if (selection.SelectedItem != null)
                 {
                     items.SelectedItemIndex = items.Items.IndexOf(selection.SelectedItem);
@@ -84,17 +83,10 @@ internal sealed class AggregateSignatureHelpProvider([ImportMany] IEnumerable<La
 
     private static class DefaultSignatureHelpSelector
     {
-        public static SignatureHelpSelection GetSelection(
-            IList<SignatureHelpItem> items,
-            SignatureHelpItem? selectedItem,
-            bool userSelected,
-            int argumentIndex,
-            int argumentCount,
-            string? argumentName,
-            bool isCaseSensitive)
+        public static SignatureHelpSelection GetSelection(IList<SignatureHelpItem> items, SignatureHelpItem? selectedItem, bool userSelected, int semanticParameterIndex, int syntacticArgumentCount, string argumentName, bool isCaseSensitive)
         {
-            selectedItem = SelectBestItem(selectedItem, ref userSelected, items, argumentIndex, argumentCount, argumentName, isCaseSensitive);
-            var selectedParameter = GetSelectedParameter(selectedItem, argumentIndex, argumentName, isCaseSensitive);
+            selectedItem = SelectBestItem(selectedItem, ref userSelected, items, semanticParameterIndex, syntacticArgumentCount, argumentName, isCaseSensitive);
+            var selectedParameter = GetSelectedParameter(selectedItem, semanticParameterIndex, argumentName, isCaseSensitive);
             return new SignatureHelpSelection(selectedItem, userSelected, selectedParameter);
         }
 

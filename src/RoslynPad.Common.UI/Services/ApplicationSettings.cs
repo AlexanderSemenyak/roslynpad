@@ -125,6 +125,7 @@ internal class ApplicationSettings : IApplicationSettings
         private string? _windowBounds;
         private string? _dockLayout;
         private string? _windowState;
+        private string _editorFontFamily = GetDefaultPlatformFontFamily();
         private double _editorFontSize = DefaultFontSize;
         private double _outputFontSize = DefaultFontSize;
         private string? _documentPath;
@@ -148,6 +149,23 @@ internal class ApplicationSettings : IApplicationSettings
             EditorFontSize = DefaultFontSize;
             OutputFontSize = DefaultFontSize;
             LiveModeDelayMs = LiveModeDelayMsDefault;
+            EditorFontFamily = GetDefaultPlatformFontFamily();
+        }
+
+        private static string GetDefaultPlatformFontFamily()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return "Cascadia Code,Consolas";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return "Menlo";
+            }
+            else
+            {
+                return "Monospace";
+            }
         }
 
         public bool SendErrors
@@ -191,6 +209,12 @@ internal class ApplicationSettings : IApplicationSettings
         {
             get => _editorFontSize;
             set => SetProperty(ref _editorFontSize, value);
+        }
+
+        public string EditorFontFamily
+        {
+            get => _editorFontFamily;
+            set => SetProperty(ref _editorFontFamily, value);
         }
 
         public double OutputFontSize
